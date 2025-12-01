@@ -1,9 +1,23 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.api import auth
 from app.core.config import settings
-import app.db.test_connection
 
+app = FastAPI(title="Chat Demo")
 
-print(settings.DATABASE_URI)
-print(settings.SECRET_KEY)
-print(settings.CORS_ORIGINS)
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS_LIST,  
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-app.db.test_connection.test()
+# 注册路由
+app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+
+# 根路由
+@app.get("/")
+def root():
+    return {"msg": "FastAPI 聊天服务已启动"}

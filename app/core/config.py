@@ -20,9 +20,9 @@ class Settings(BaseSettings):
             f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_DATABASE}?charset=utf8mb4"
         )
     
+    @property
     def CORS_ORIGINS_LIST(self) -> List[str]:
-        """把逗号分隔的字符串拆成列表，供 FastAPI 的 allow_origins 使用"""
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+        return [orig.strip() for orig in self.CORS_ORIGINS.split(",") if orig.strip()]
 
     # ---------- JWT ----------
     SECRET_KEY: str
