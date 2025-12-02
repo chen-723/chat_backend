@@ -8,6 +8,7 @@ import shutil, uuid, os
 from app.schemas.user import UserResponse
 from app.core.dependencies import get_current_user
 from app.models.user import User
+from pydantic import BaseModel, Field
 
 # router = APIRouter(prefix="/users", tags=["users"])
 router = APIRouter()
@@ -15,6 +16,11 @@ router = APIRouter()
 AVATAR_DIR = "static/avatars"
 os.makedirs(AVATAR_DIR, exist_ok=True)
 
+class BioUpdate(BaseModel):
+    bio: str | None = Field(None, max_length=255)
+
+class UsernameUpdate(BaseModel):
+    username: str = Field(..., min_length=1, max_length=16)
 
 
 @router.put("/me/avatar", response_model=UserResponse)
@@ -38,4 +44,27 @@ def updata_avatar(
     db.commit()
     db.refresh(current_user)
 
+    return current_user
+
+
+@router.put("/me/bio", response_model=UserResponse)
+def updata_bio(
+    payload: BioUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    current_user.bio = payload.bio
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+@router.put("/me/username", response_model=UserResponse)
+def update_username(
+    payload: UsernameUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    current_user.username = payload.username
+    db.commit()
+    db.refresh(current_user)
     return current_user

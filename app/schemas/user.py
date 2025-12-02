@@ -3,13 +3,13 @@ from pydantic import BaseModel, Field, field_validator
 
 #注册
 class UserRegister(BaseModel):
-    username: str = Field(min_length=2, max_length=32)
+    username: str = Field(min_length=1, max_length=32)
     password: str = Field(min_length=6, max_length=128)
     phone: str = Field(pattern=r'^1[3-9]\d{9}$')
 
 #登录
 class UserLogin(BaseModel):
-    username: str | None = Field(None, min_length=2, max_length=32)
+    username: str | None = Field(None, min_length=1, max_length=32)
     phone: str | None = Field(None, pattern=r'^1[3-9]\d{9}$')
     password: str
 
