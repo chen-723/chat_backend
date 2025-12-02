@@ -31,3 +31,5 @@ htmlcov/
 .tox/
 .coverage
 .pytest_cache/
+
+static/

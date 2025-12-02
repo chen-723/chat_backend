@@ -1,7 +1,8 @@
+#注册登录部分专用的
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
+from app.schemas.user import UserRegister, UserLogin, UserResponse, Token
 from app.services.auth_service import register_user, authenticate_user
 from app.core.dependencies import get_current_user
 from app.models.user import User
@@ -11,7 +12,7 @@ router = APIRouter()
 
 # 1. 注册
 @router.post("/register", response_model=UserResponse, status_code=201)
-def register(req: UserCreate, db: Session = Depends(get_db)):
+def register(req: UserRegister, db: Session = Depends(get_db)):
     try:
         return register_user(db, req)
     except ValueError as e:
