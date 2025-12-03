@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.api import auth, user
+from app.api import auth, user, contact
 from app.core.config import settings
 import os
 
@@ -24,6 +24,7 @@ app.add_middleware(
 # 注册路由
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(user.router, prefix="/api/auth", tags=["User"])
+app.include_router(contact.router, prefix="/api/contacts", tags=["Contacts"])
 
 # 根路由
 @app.get("/")

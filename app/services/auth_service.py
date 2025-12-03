@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.schemas.user import UserRegister, UserLogin
 from app.core.security import create_access_token
+from datetime import datetime, timedelta
 
 # ---- 注册 ----
 def register_user(db: Session, req: UserRegister) -> User:
@@ -29,4 +30,19 @@ def authenticate_user(db: Session, req: UserLogin):
     
     if not user or user.password != req.password:
         return None
+    
+    # 登录成功，设置在线状态
+    user.status = "online"
+    user.last_seen = None  # 清空最后离线时间
+    db.commit()
+    
+    return user
+
+# ---- 登出 ----
+def logout_user(db: Session, user_id: int):
+    user = db.query(User).filter(User.id == user_id).first()
+    if user:
+        user.status = "offline"
+        user.last_seen = datetime.utcnow() + timedelta(hours=8)
+        db.commit()
     return user

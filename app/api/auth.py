@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.schemas.user import UserRegister, UserLogin, UserResponse, Token
-from app.services.auth_service import register_user, authenticate_user
+from app.services.auth_service import register_user, authenticate_user, logout_user
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.core.security import create_access_token
@@ -31,3 +31,12 @@ def login(req: UserLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def read_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+# 4. 登出
+@router.post("/logout")
+def logout(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    logout_user(db, current_user.id)
+    return {"msg": "登出成功"}

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.sql import func
 from app.db.database import Base
 
 class User(Base):
@@ -10,3 +11,5 @@ class User(Base):
     avatar      = Column(String(256), nullable=True)        # 头像 url 前端没用上
     bio         = Column(String(256), nullable=True)        # 个性签名
     phone       = Column(String(20), unique=True, nullable=False)  # 手机号
+    status      = Column(String(20), default="offline")     # 在线状态
+    last_seen   = Column(DateTime, nullable=True)           # 最后登录时间

@@ -10,7 +10,6 @@ from app.core.dependencies import get_current_user
 from app.models.user import User
 from pydantic import BaseModel, Field
 
-# router = APIRouter(prefix="/users", tags=["users"])
 router = APIRouter()
 
 AVATAR_DIR = "static/avatars"

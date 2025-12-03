@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, field_serializer
 
 
 #注册
@@ -33,7 +33,14 @@ class UserResponse(BaseModel):
     username: str
     avatar: str | None = None
     bio: str | None = None
-    phone: str | None = None 
+    phone: str | None = None  
+
+    @field_serializer('avatar')
+    def serialize_avatar(self, avatar: str | None) -> str | None:
+        """将相对路径转换为完整 URL"""
+        if avatar and not avatar.startswith('http'):
+            return f"http://localhost:8000{avatar}"
+        return avatar
 
     class Config:
         from_attributes = True
