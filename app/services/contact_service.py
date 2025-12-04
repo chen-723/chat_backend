@@ -1,15 +1,28 @@
 # services/contact_service.py
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import select
+from sqlalchemy import select,delete
 from app.models.contact import Contact
 from app.models.user import User
 from app.schemas.contact import ContactResponse
 
+from fastapi import HTTPException, status
+
+def _to_contact_resp(contact: Contact) -> ContactResponse:
+    u = contact.contact_user
+    return ContactResponse(
+        id=contact.id,
+        name=u.username,
+        avatar=f"http://localhost:8000{u.avatar}" if u.avatar else None,
+        status=getattr(u, "status", "offline") or "offline",
+        lastSeen=u.last_seen.isoformat() if u.last_seen else None,
+        lastMegTime=None,
+        lastMeg=None,
+        count=0,
+        is_favorite=contact.is_favorite,
+    )
+
 
 def get_contacts(db: Session, user_id: int) -> list[ContactResponse]:
-    """
-    先只做“联系人列表”，消息相关字段全部兜底。
-    """
     # 一次性把联系人及其对应的 user 对象全拉出来
     stmt = (
         select(Contact)
@@ -17,33 +30,40 @@ def get_contacts(db: Session, user_id: int) -> list[ContactResponse]:
         .options(joinedload(Contact.contact_user))
         .order_by(Contact.is_favorite.desc(), Contact.created_at.desc())
     )
-    contacts = db.scalars(stmt).unique().all()
+    return [_to_contact_resp(c) for c in db.scalars(stmt).unique().all()]
 
-    # 拼 schema，返回完整的头像 URL
-    return [
-        ContactResponse(
-            id=c.id,
-            name=c.contact_user.username,
-            avatar=f"http://localhost:8000{c.contact_user.avatar}" if c.contact_user.avatar else None,
-            status=getattr(c.contact_user, 'status', 'offline') or "offline",
-            lastSeen=c.contact_user.last_seen.isoformat() if hasattr(c.contact_user, 'last_seen') and c.contact_user.last_seen else None,
-            lastMegTime=None,      # 暂无消息表
-            lastMeg=None,          # 暂无消息表
-            count=0,               # 暂无消息表
-            is_favorite=c.is_favorite,
+
+
+def add_contact(db: Session, user_id: int, contact_user_id: int) -> ContactResponse:
+    if user_id == contact_user_id:
+        raise HTTPException(400, "不能添加自己为联系人")
+
+    exists = db.scalar(select(Contact).where_by(user_id=user_id, contact_user_id=contact_user_id))
+    if exists:
+        raise HTTPException(400, "联系人已存在")
+
+    # 双向插入
+    forward = Contact(user_id=user_id, contact_user_id=contact_user_id)
+    reverse = Contact(user_id=contact_user_id, contact_user_id=user_id)
+    db.add_all([forward, reverse])
+    db.commit()
+    return _to_contact_resp(forward)   # 只把“正向”记录返回即可
+
+
+
+def remove_contact(db: Session, user_id: int, contact_user_id: int) -> None:
+    """双向删除，无返回值"""
+    db.execute(
+        delete(Contact).where(
+            (Contact.user_id == user_id) & (Contact.contact_user_id == contact_user_id)
         )
-        for c in contacts
-    ]
-
-def add_contact(db: Session, user_id: int, contact_user_id: int):
-    """添加联系人"""
-    # 检查是否已存在
-    # 创建双向联系人关系
-    pass
-
-def remove_contact(db: Session, user_id: int, contact_user_id: int):
-    """删除联系人"""
-    pass
+    )
+    db.execute(
+        delete(Contact).where(
+            (Contact.user_id == contact_user_id) & (Contact.contact_user_id == user_id)
+        )
+    )
+    db.commit()
 
 def toggle_favorite(db: Session, user_id: int, contact_user_id: int):
     """切换特别关心"""

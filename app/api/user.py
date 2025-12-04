@@ -1,11 +1,12 @@
 # 用户资料管理（头像、签名、手机号等）
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, File, Form, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, File, Form, UploadFile, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 import shutil, uuid, os
-from app.schemas.user import UserResponse
+from app.schemas.user import UserResponse, UserSearchOut
 from app.core.dependencies import get_current_user
 from app.models.user import User
 from pydantic import BaseModel, Field
@@ -67,3 +68,15 @@ def update_username(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+@router.get("/search", response_model=list[UserSearchOut])
+def search_users(
+    q: str = Query(min_length=1, max_length=20),
+    db: Session = Depends(get_db)
+):
+    return (
+        db.query(User)
+        .filter(func.lower(User.username).like(f"{q.lower()}%"))
+        .limit(5)
+        .all()
+    )

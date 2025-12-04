@@ -7,6 +7,7 @@ import os
 
 app = FastAPI(title="Chat Demo")
 
+
 # 挂载静态文件目录
 if not os.path.exists("static"):
     os.makedirs("static")
@@ -17,7 +18,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS_LIST,  
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 

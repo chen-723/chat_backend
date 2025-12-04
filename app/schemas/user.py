@@ -40,6 +40,25 @@ class UserResponse(BaseModel):
         """将相对路径转换为完整 URL"""
         if avatar and not avatar.startswith('http'):
             return f"http://localhost:8000{avatar}"
+            # return f"http://192.168.5.88:8000{avatar}"
+        return avatar
+
+    class Config:
+        from_attributes = True
+
+#搜索用的
+class UserSearchOut(BaseModel):
+    id: int
+    username: str
+    avatar: str | None = None
+    bio: str | None = None
+    phone: str | None = None  
+
+    @field_serializer('avatar')
+    def serialize_avatar(self, avatar: str | None) -> str | None:
+        """将相对路径转换为完整 URL"""
+        if avatar and not avatar.startswith('http'):
+            return f"http://localhost:8000{avatar}"
         return avatar
 
     class Config:

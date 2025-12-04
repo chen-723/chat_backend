@@ -25,7 +25,7 @@ def add_contact(
     """添加联系人"""
     return contact_service.add_contact(db, current_user.id, payload.contact_user_id)
 
-@router.delete("/{contact_user_id}")
+@router.delete("/{contact_user_id}", status_code=204)
 def remove_contact(
     contact_user_id: int,
     db: Session = Depends(get_db),
@@ -34,6 +34,7 @@ def remove_contact(
     """删除联系人"""
     contact_service.remove_contact(db, current_user.id, contact_user_id)
     return {"msg": "删除成功"}
+
 
 @router.patch("/{contact_user_id}/favorite")
 def toggle_favorite(

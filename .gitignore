@@ -34,3 +34,4 @@ htmlcov/
 
 static/
 *.txt
+demo/

@@ -9,6 +9,7 @@ class ContactResponse(BaseModel):
     name: str  # 联系人用户名
     avatar: str | None
     status: str  # "online" | "offline"
+    bio: str | None = None
     lastSeen: str | None
     lastMegTime: str | None
     lastMeg: str | None
