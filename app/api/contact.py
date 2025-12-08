@@ -45,10 +45,10 @@ def toggle_favorite(
     """切换特别关心"""
     return contact_service.toggle_favorite(db, current_user.id, contact_user_id)
 
-@router.get("/favorites", response_model=list[ContactResponse])
-def get_favorites(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """获取特别关心列表"""
-    return contact_service.get_favorites(db, current_user.id)
+# @router.get("/favorites", response_model=list[ContactResponse])
+# def get_favorites(
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     """获取特别关心列表"""
+#     return contact_service.get_favorites(db, current_user.id)

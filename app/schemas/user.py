@@ -40,7 +40,6 @@ class UserResponse(BaseModel):
         """将相对路径转换为完整 URL"""
         if avatar and not avatar.startswith('http'):
             return f"http://localhost:8000{avatar}"
-            # return f"http://192.168.5.88:8000{avatar}"
         return avatar
 
     class Config:
