@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.post("/send", response_model=MessageResponse, status_code=201)
-def send_message(
+async def send_message(
     message_data: MessageCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -25,7 +25,7 @@ def send_message(
         - meg_type: 消息类型 (1-文本, 2-图片, 3-文件)
     """
     try:
-        message = message_service.send_message(db, current_user.id, message_data)
+        message = await message_service.send_message_async(db, current_user.id, message_data)
         return message
     except Exception as e:
         raise HTTPException(500, detail=f"发送消息失败: {str(e)}")
@@ -99,7 +99,7 @@ def get_all_unread_counts(
 
 
 @router.post("/read/{peer_user_id}")
-def mark_messages_as_read(
+async def mark_messages_as_read(
     peer_user_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -114,7 +114,7 @@ def mark_messages_as_read(
         前端进入聊天页面时调用此接口，批量标记消息为已读
     """
     try:
-        updated_count = message_service.mark_as_read(db, current_user.id, peer_user_id)
+        updated_count = await message_service.mark_as_read_async(db, current_user.id, peer_user_id)
         return {
             "msg": "标记成功",
             "peer_user_id": peer_user_id,

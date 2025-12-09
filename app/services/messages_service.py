@@ -4,12 +4,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, desc, func
 from app.models.messages import Messages
 from app.schemas.messages import MessageCreate, MessageResponse, Messagepage
+from app.websocket.manager import manager
 
 
 # --------------------------------------------------
 # 发送消息
 # --------------------------------------------------
-def send_message(
+async def send_message_async(
     db: Session,
     sender_id: int,
     message_data: MessageCreate
@@ -24,7 +25,18 @@ def send_message(
     db.add(new_message)
     db.commit()
     db.refresh(new_message)
-    # TODO: 推送消息给在线接收方（WebSocket/SSE）
+    
+    # 推送消息给在线接收方
+    if manager.is_online(message_data.receiver_id):
+        message_response = MessageResponse.model_validate(new_message)
+        await manager.send_personal_message(
+            message_data.receiver_id,
+            {
+                "type": "new_message",
+                "data": message_response.model_dump(mode='json')
+            }
+        )
+    
     return new_message
 
 
@@ -79,7 +91,7 @@ def get_unread_count(
 # --------------------------------------------------
 # 标记与某人的所有消息为已读
 # --------------------------------------------------
-def mark_as_read(
+async def mark_as_read_async(
     db: Session,
     current_user_id: int,
     peer_user_id: int
@@ -90,7 +102,20 @@ def mark_as_read(
         Messages.is_read == False
     ).update({"is_read": True}, synchronize_session=False)
     db.commit()
-    # TODO: 推送已读回执
+    
+    # 推送已读回执给对方
+    if updated_count > 0 and manager.is_online(peer_user_id):
+        await manager.send_personal_message(
+            peer_user_id,
+            {
+                "type": "read_receipt",
+                "data": {
+                    "reader_id": current_user_id,
+                    "count": updated_count
+                }
+            }
+        )
+    
     return updated_count
 
 
