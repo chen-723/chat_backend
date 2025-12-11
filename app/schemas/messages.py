@@ -5,7 +5,7 @@ from typing import List
 class MessageCreate (BaseModel):
     receiver_id : int
     content : str
-    meg_type : int =1 #1普通文本 2图片 3文件
+    msg_type : int = 1  # 1普通文本 2图片 3文件
 
 class MessageResponse (BaseModel):
     id : int 
@@ -18,6 +18,9 @@ class MessageResponse (BaseModel):
 
     class Config:
         from_attributes = True
+
+class UploadResponse(BaseModel):
+    url: str 
 
 class Messagepage (BaseModel):
     items : List[MessageResponse]

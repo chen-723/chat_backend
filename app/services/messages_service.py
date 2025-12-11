@@ -19,7 +19,7 @@ async def send_message_async(
         sender_id=sender_id,
         receiver_id=message_data.receiver_id,
         content=message_data.content,
-        msg_type=message_data.meg_type,   # 沿用 schema 的拼写
+        msg_type=message_data.msg_type,
         is_read=False
     )
     db.add(new_message)

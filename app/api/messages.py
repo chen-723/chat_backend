@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.db.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.messages import MessageCreate, MessageResponse, Messagepage
+from app.schemas.messages import MessageCreate, MessageResponse, Messagepage, UploadResponse
 from app.services import messages_service as message_service
 
 router = APIRouter()
@@ -22,20 +23,44 @@ async def send_message(
     Body:
         - receiver_id: 接收者ID
         - content: 消息内容
-        - meg_type: 消息类型 (1-文本, 2-图片, 3-文件)
+        - msg_type: 消息类型 (1-文本, 2-图片, 3-文件)
     """
     try:
         message = await message_service.send_message_async(db, current_user.id, message_data)
         return message
     except Exception as e:
         raise HTTPException(500, detail=f"发送消息失败: {str(e)}")
+    
+@router.post("/upload", response_model=UploadResponse)
+async def upload_file(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    通用文件上传（图片、语音、普通文件）
+    返回静态地址，文件名用 UUID 防止冲突
+    """
+    import uuid, os
+    from pathlib import Path
+
+    UPLOAD_DIR = Path("static/upload")
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+    ext = Path(file.filename).suffix
+    name = f"{uuid.uuid4().hex}{ext}"
+    file_path = UPLOAD_DIR / name
+
+    with file_path.open("wb") as f:
+        f.write(await file.read())
+
+    return UploadResponse(url=f"/static/upload/{name}")
 
 
 @router.get("/history/{peer_user_id}", response_model=Messagepage)
 def get_chat_history(
     peer_user_id: int,
     last_id: Optional[int] = Query(None, description="上次最后一条消息ID，用于分页"),
-    limit: int = Query(20, ge=1, le=100, description="每页条数，默认20"),
+    limit: int = Query(30, ge=1, le=100, description="每页条数，默认30"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
