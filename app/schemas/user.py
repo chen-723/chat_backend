@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, field_validator, field_serializer
+from app.core.server_config import get_server_url
 
 
 #注册
@@ -39,7 +40,7 @@ class UserResponse(BaseModel):
     def serialize_avatar(self, avatar: str | None) -> str | None:
         """将相对路径转换为完整 URL"""
         if avatar and not avatar.startswith('http'):
-            return f"http://localhost:8000{avatar}"
+            return f"{get_server_url()}{avatar}"
         return avatar
 
     class Config:
@@ -57,7 +58,7 @@ class UserSearchOut(BaseModel):
     def serialize_avatar(self, avatar: str | None) -> str | None:
         """将相对路径转换为完整 URL"""
         if avatar and not avatar.startswith('http'):
-            return f"http://localhost:8000{avatar}"
+            return f"{get_server_url()}{avatar}"
         return avatar
 
     class Config:

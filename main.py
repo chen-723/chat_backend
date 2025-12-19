@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -6,7 +7,21 @@ from app.websocket import router as websocket_router
 from app.core.config import settings
 import os
 
-app = FastAPI(title="Chat Demo")
+
+from app.db.init_db import init
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ===== 启动阶段 =====
+    init()   # 建库 / 建表
+    yield
+    # ===== 关闭阶段 =====
+    pass
+
+app = FastAPI(
+    title="Chat Demo",
+    lifespan=lifespan
+)
 
 
 # 挂载静态文件目录

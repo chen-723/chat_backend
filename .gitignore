@@ -35,3 +35,4 @@ htmlcov/
 static/
 *.txt
 demo/
+*.zip

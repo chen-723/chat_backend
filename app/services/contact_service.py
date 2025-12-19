@@ -6,6 +6,7 @@ from app.models.user import User
 from app.models.messages import Messages
 from app.schemas.contact import ContactResponse
 from datetime import datetime, timezone
+from app.core.server_config import get_server_url
 
 from fastapi import HTTPException, status
 
@@ -45,7 +46,7 @@ def _to_contact_resp(contact: Contact, last_msg: Messages | None = None, unread_
         id=contact.id,
         user_id=contact.contact_user_id,  # 添加真实用户 ID
         name=u.username,
-        avatar=f"http://localhost:8000{u.avatar}" if u.avatar else None,
+        avatar=f"{get_server_url()}{u.avatar}" if u.avatar else None,
         status=getattr(u, "status", "offline") or "offline",
         bio=u.bio,
         lastSeen=u.last_seen.isoformat() if u.last_seen else None,
