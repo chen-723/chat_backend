@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.api import auth, user, contact, messages
+from app.api import auth, user, contact, messages, groups
 from app.websocket import router as websocket_router
 from app.core.config import settings
 import os
@@ -43,6 +43,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(user.router, prefix="/api/auth", tags=["User"])
 app.include_router(contact.router, prefix="/api/contacts", tags=["Contacts"])
 app.include_router(messages.router, prefix="/api/messages", tags=["Messages"])
+app.include_router(groups.router, prefix="/api/groups", tags=["Groups"])
 app.include_router(websocket_router.router, tags=["WebSocket"])
 
 # 根路由

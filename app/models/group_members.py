@@ -1,6 +1,5 @@
-from unittest.mock import Base
-
 from sqlalchemy import Column, DateTime, Integer, String
+from app.db.database import Base
 
 
 class GroupMember(Base):
@@ -13,6 +12,6 @@ class GroupMember(Base):
     #用户ID
     user_id = Column(Integer, nullable=False, index=True)
     #角色
-    role = Column(Integer, nullable=False, default="3") #1-群主 2-管理员 3-普通成员
+    role = Column(Integer, nullable=False, default=3) #1-群主 2-管理员 3-普通成员
     #加入时间
     joined_at = Column(DateTime, nullable=False)
