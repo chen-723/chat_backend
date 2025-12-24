@@ -181,3 +181,41 @@ def toggle_favorite(db: Session, user_id: int, contact_user_id: int) -> ContactR
     ) or 0
 
     return _to_contact_resp(contact, last_msg, unread_cnt)
+
+def get_contact_detail(db: Session, user_id: int, contact_user_id: int) -> ContactResponse:
+    """获取指定联系人详情"""
+    # 查询联系人关系并预加载 contact_user
+    stmt = (
+        select(Contact)
+        .where(
+            (Contact.user_id == user_id) & (Contact.contact_user_id == contact_user_id)
+        )
+        .options(joinedload(Contact.contact_user))
+    )
+    contact = db.scalar(stmt)
+
+    if not contact:
+        raise HTTPException(status_code=404, detail="联系人不存在")
+    
+    # 获取最新消息
+    last_msg = db.scalar(
+        select(Messages)
+        .where(
+            Messages.sender_id == contact_user_id,
+            Messages.receiver_id == user_id
+        )
+        .order_by(desc(Messages.created_at))
+        .limit(1)
+    )
+    
+    # 获取未读消息数
+    unread_cnt = db.scalar(
+        select(func.count(Messages.id))
+        .where(
+            Messages.sender_id == contact_user_id,
+            Messages.receiver_id == user_id,
+            Messages.is_read == False
+        )
+    ) or 0
+
+    return _to_contact_resp(contact, last_msg, unread_cnt)

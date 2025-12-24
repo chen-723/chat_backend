@@ -37,6 +37,16 @@ async def websocket_endpoint(
         # 建立连接
         await manager.connect(user_id, websocket)
         
+        # 获取在线联系人列表并发送给当前用户
+        online_contacts = await manager.get_online_contacts(user_id, db)
+        await websocket.send_text(json.dumps({
+            "type": "online_users",
+            "data": {"user_ids": online_contacts}
+        }, ensure_ascii=False))
+        
+        # 广播用户上线状态给其联系人
+        await manager.broadcast_user_status(user_id, "online", db)
+        
         # 发送连接成功消息
         await websocket.send_text(json.dumps({
             "type": "connected",
@@ -45,30 +55,42 @@ async def websocket_endpoint(
         
         # 保持连接，监听客户端消息
         while True:
-            data = await websocket.receive_text()
-            
             try:
-                message = json.loads(data)
-                msg_type = message.get("type")
+                data = await websocket.receive_text()
                 
-                # 心跳检测
-                if msg_type == "ping":
-                    await websocket.send_text(json.dumps({
-                        "type": "pong",
-                        "data": {"timestamp": message.get("timestamp")}
-                    }))
-                
-                # 可以在这里处理其他类型的客户端消息
-                
-            except json.JSONDecodeError:
-                logger.warning(f"收到无效JSON: {data}")
+                try:
+                    message = json.loads(data)
+                    msg_type = message.get("type")
+                    
+                    # 心跳检测
+                    if msg_type == "ping":
+                        await websocket.send_text(json.dumps({
+                            "type": "pong",
+                            "data": {"timestamp": message.get("timestamp")}
+                        }))
+                    
+                    # 可以在这里处理其他类型的客户端消息
+                    
+                except json.JSONDecodeError:
+                    logger.warning(f"收到无效JSON: {data}")
+            
+            except WebSocketDisconnect:
+                logger.info(f"用户 {user_id} 主动断开连接")
+                break
+            except Exception as e:
+                logger.error(f"接收消息时出错: {e}")
+                break
                 
     except JWTError:
-        await websocket.close(code=1008, reason="Token验证失败")
-    except WebSocketDisconnect:
-        logger.info(f"用户 {user_id} 主动断开连接")
+        try:
+            await websocket.close(code=1008, reason="Token验证失败")
+        except Exception:
+            pass
     except Exception as e:
         logger.error(f"WebSocket错误: {e}")
     finally:
         if user_id:
+            # 广播用户下线状态给其联系人
+            await manager.broadcast_user_status(user_id, "offline", db)
             manager.disconnect(user_id)
+            logger.info(f"清理用户 {user_id} 的连接资源")

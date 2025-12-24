@@ -150,7 +150,7 @@ def get_group_members(db: Session, group_id: int, user_id: int) -> list[dict]:
     return members
 
 
-def add_group_member(db: Session, group_id: int, operator_id: int, target_user_id: int) -> GroupMemberResponse:
+async def add_group_member(db: Session, group_id: int, operator_id: int, target_user_id: int) -> GroupMemberResponse:
     """添加群成员（群主和管理员可操作）"""
     # 检查群是否存在
     group = db.get(Group, group_id)
@@ -187,6 +187,20 @@ def add_group_member(db: Session, group_id: int, operator_id: int, target_user_i
     db.add(new_member)
     db.commit()
     db.refresh(new_member)
+    
+    # 发送 WebSocket 通知给被添加的用户
+    if manager.is_online(target_user_id):
+        await manager.send_personal_message(
+            target_user_id,
+            {
+                "type": "group_member_added",
+                "data": {
+                    "group_id": group_id,
+                    "group_name": group.name,
+                    "operator_id": operator_id
+                }
+            }
+        )
     
     return GroupMemberResponse.model_validate(new_member)
 
@@ -304,15 +318,15 @@ async def send_group_message(db: Session, sender_id: int, message_data: GroupMes
     return new_message
 
 
-def get_group_GroupMessage(
+def get_group_messages(
     db: Session,
     group_id: int,
     user_id: int,
     last_id: Optional[int] = None,
-    limit: int = 30
+    limit: int = 99
 ) -> GroupMessagePage:
     """获取群聊天记录（分页）"""
-    # 检查是否是群成员
+    # 1. 验成员
     member = db.scalar(
         select(GroupMember).where(
             GroupMember.group_id == group_id,
@@ -321,22 +335,23 @@ def get_group_GroupMessage(
     )
     if not member:
         raise HTTPException(403, "您不是该群成员")
-    
+
+    # 2. 查消息
     query = db.query(GroupMessage).filter(GroupMessage.group_id == group_id)
-    
     if last_id:
         query = query.filter(GroupMessage.id < last_id)
-    
-    GroupMessage = query.order_by(desc(GroupMessage.created_at)).limit(limit + 1).all()
-    
-    has_more = len(GroupMessage) > limit
+
+    msgs = query.order_by(desc(GroupMessage.created_at)).limit(limit + 1).all()
+
+    # 3. 组装分页
+    has_more = len(msgs) > limit
     if has_more:
-        GroupMessage = GroupMessage[:limit]
-    
-    last_message_id = GroupMessage[-1].id if GroupMessage else None
-    
+        msgs = msgs[:limit]
+
+    last_message_id = msgs[-1].id if msgs else None
+
     return GroupMessagePage(
-        items=[GroupMessageResponse.model_validate(msg) for msg in GroupMessage],
+        items=[GroupMessageResponse.model_validate(m) for m in msgs],
         has_more=has_more,
         last_id=last_message_id
     )

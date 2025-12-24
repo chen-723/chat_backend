@@ -45,6 +45,15 @@ def toggle_favorite(
     """切换特别关心"""
     return contact_service.toggle_favorite(db, current_user.id, contact_user_id)
 
+@router.get("/{contact_user_id}", response_model=ContactResponse)
+def get_contact_detail(
+    contact_user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """获取指定联系人详情"""
+    return contact_service.get_contact_detail(db, current_user.id, contact_user_id)
+
 # @router.get("/favorites", response_model=list[ContactResponse])
 # def get_favorites(
 #     db: Session = Depends(get_db),

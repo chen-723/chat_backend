@@ -48,7 +48,7 @@ def get_chat_history(
     current_user_id: int,
     peer_user_id: int,
     last_id: Optional[int] = None,
-    limit: int = 20
+    limit: int = 99
 ) -> Messagepage:
     query = db.query(Messages).filter(
         or_(

@@ -60,7 +60,7 @@ async def upload_file(
 def get_chat_history(
     peer_user_id: int,
     last_id: Optional[int] = Query(None, description="上次最后一条消息ID，用于分页"),
-    limit: int = Query(30, ge=1, le=100, description="每页条数，默认30"),
+    limit: int = Query(99, ge=1, le=100, description="每页条数，默认99"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):

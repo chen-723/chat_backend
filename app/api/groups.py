@@ -140,7 +140,7 @@ def get_group_members(
 
 
 @router.post("/{group_id}/members/{user_id}", response_model=GroupMemberResponse, status_code=201)
-def add_group_member(
+async def add_group_member(
     group_id: int,
     user_id: int,
     db: Session = Depends(get_db),
@@ -156,7 +156,7 @@ def add_group_member(
     说明：
         仅群主和管理员可操作
     """
-    return group_service.add_group_member(db, group_id, current_user.id, user_id)
+    return await group_service.add_group_member(db, group_id, current_user.id, user_id)
 
 
 @router.delete("/{group_id}/members/{user_id}")
@@ -245,7 +245,7 @@ async def send_group_message(
 def get_group_messages(
     group_id: int,
     last_id: Optional[int] = Query(None, description="上次最后一条消息ID，用于分页"),
-    limit: int = Query(30, ge=1, le=100, description="每页条数，默认30"),
+    limit: int = Query(99, ge=1, le=100, description="每页条数，默认30"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
