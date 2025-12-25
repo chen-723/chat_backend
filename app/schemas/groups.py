@@ -25,6 +25,7 @@ class GroupResponse(BaseModel):
     owner_id: int
     description: str | None = None
     created_at: datetime
+    member_count: int
 
     @field_serializer('avatar')
     def serialize_avatar(self, avatar: str | None) -> str | None:

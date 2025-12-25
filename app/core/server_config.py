@@ -7,7 +7,8 @@ import os
 # 优先使用环境变量，否则使用默认值
 # 开发环境使用 localhost
 # 生产环境改为服务器IP，例如: '192.168.1.100'
-SERVER_HOST = os.getenv("SERVER_HOST", "127.0.0.1")
+# SERVER_HOST = os.getenv("SERVER_HOST", "127.0.0.1")
+SERVER_HOST = os.getenv("SERVER_HOST", "192.168.2.19")
 
 # 服务器端口
 SERVER_PORT = int(os.getenv("SERVER_PORT", "8000"))
@@ -15,7 +16,7 @@ SERVER_PORT = int(os.getenv("SERVER_PORT", "8000"))
 # 获取完整的服务器地址
 def get_server_url() -> str:
     """返回完整的服务器URL"""
-    return f"http://{SERVER_HOST}:{SERVER_PORT}"
+    return f"https://{SERVER_HOST}:{SERVER_PORT}"
 
 # 获取静态文件访问地址
 def get_static_url(path: str) -> str:

@@ -13,6 +13,8 @@ class ConnectionManager:
     def __init__(self):
         # 存储活跃连接: {user_id: WebSocket}
         self.active_connections: Dict[int, WebSocket] = {}
+        # 存储通话状态: {user_id: peer_user_id}
+        self.active_calls: Dict[int, int] = {}
     
     async def connect(self, user_id: int, websocket: WebSocket):
         """建立连接"""
@@ -141,6 +143,42 @@ class ConnectionManager:
         for user_id in stale_users:
             self.disconnect(user_id)
             logger.info(f"清理失效连接: 用户 {user_id}")
+    
+    # ========== 语音通话相关方法 ==========
+    
+    async def send_binary_message(self, user_id: int, data: bytes):
+        """发送二进制消息给指定用户（用于音频流）"""
+        if user_id in self.active_connections:
+            try:
+                await self.active_connections[user_id].send_bytes(data)
+                return True
+            except Exception as e:
+                logger.error(f"发送二进制消息给用户 {user_id} 失败: {e}")
+                return False
+        return False
+    
+    def is_in_call(self, user_id: int) -> bool:
+        """检查用户是否正在通话中"""
+        return user_id in self.active_calls
+    
+    def start_call(self, caller_id: int, receiver_id: int):
+        """建立通话映射"""
+        self.active_calls[caller_id] = receiver_id
+        self.active_calls[receiver_id] = caller_id
+        logger.info(f"通话建立: {caller_id} <-> {receiver_id}")
+    
+    def end_call(self, user_id: int) -> int | None:
+        """结束通话，返回对方的 user_id"""
+        peer_id = self.active_calls.get(user_id)
+        if peer_id:
+            self.active_calls.pop(user_id, None)
+            self.active_calls.pop(peer_id, None)
+            logger.info(f"通话结束: {user_id} <-> {peer_id}")
+        return peer_id
+    
+    def get_call_peer(self, user_id: int) -> int | None:
+        """获取通话对方的 user_id"""
+        return self.active_calls.get(user_id)
 
 
 # 全局单例

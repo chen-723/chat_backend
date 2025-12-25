@@ -32,8 +32,11 @@ htmlcov/
 .coverage
 .pytest_cache/
 
+#自己添加的
 static/
 *.txt
 demo/
 *.zip
 *.md
+localhost.crt
+localhost.key

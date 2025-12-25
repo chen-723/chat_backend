@@ -185,6 +185,10 @@ async def add_group_member(db: Session, group_id: int, operator_id: int, target_
         joined_at=datetime.now()
     )
     db.add(new_member)
+    
+    # 更新群人数 +1
+    group.member_count += 1
+    
     db.commit()
     db.refresh(new_member)
     
@@ -234,6 +238,11 @@ def remove_group_member(db: Session, group_id: int, operator_id: int, target_use
             raise HTTPException(400, "群主不能退群，请先转让群主或解散群组")
     elif operator.role not in [1, 2]:
         raise HTTPException(403, "无权限移除成员")
+    
+    # 获取群组并更新人数 -1
+    group = db.get(Group, group_id)
+    if group:
+        group.member_count = max(0, group.member_count - 1)
     
     db.delete(target)
     db.commit()

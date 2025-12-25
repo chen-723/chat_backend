@@ -17,3 +17,5 @@ class Group(Base):
     description = Column(String(256), nullable=True)
     #创建时间
     created_at = Column(DateTime, nullable=False, server_default=func.now())
+    #群人数
+    member_count = Column(Integer, nullable=False, default=1)
