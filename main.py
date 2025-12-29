@@ -6,7 +6,7 @@ from app.api import auth, user, contact, messages, groups
 from app.websocket import router as websocket_router
 from app.core.config import settings
 import os
-
+import cleanup
 
 from app.db.init_db import init
 
@@ -22,6 +22,7 @@ app = FastAPI(
     title="Chat Demo",
     lifespan=lifespan
 )
+cleanup.start_scheduler(app)
 
 
 # 挂载静态文件目录

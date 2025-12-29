@@ -51,6 +51,21 @@ def get_user_groups(db: Session, user_id: int) -> list[GroupResponse]:
     return [GroupResponse.model_validate(g) for g in groups]
 
 
+def search_user_groups(db: Session, user_id: int, keyword: str) -> list[GroupResponse]:
+    """搜索用户加入的群组（按群名称）"""
+    stmt = (
+        select(Group)
+        .join(GroupMember, Group.id == GroupMember.group_id)
+        .where(
+            GroupMember.user_id == user_id,
+            Group.name.like(f"%{keyword}%")
+        )
+        .order_by(desc(Group.created_at))
+    )
+    groups = db.scalars(stmt).all()
+    return [GroupResponse.model_validate(g) for g in groups]
+
+
 def get_group_detail(db: Session, group_id: int, user_id: int) -> GroupResponse:
     """获取群组详情（需要是群成员）"""
     # 检查是否是群成员

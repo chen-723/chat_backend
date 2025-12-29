@@ -170,3 +170,117 @@ def delete_message(
     db.commit()
     # TODO: 推送撤回通知
     return True
+
+
+# --------------------------------------------------
+# 搜索聊天记录（私聊+群聊）
+# --------------------------------------------------
+def search_messages(
+    db: Session,
+    current_user_id: int,
+    keyword: str,
+    limit: int = 50
+) -> list[dict]:
+    """
+    搜索与当前用户相关的聊天记录
+    返回格式：
+    [
+        {
+            "message_id": int,
+            "content": str,
+            "msg_type": int,
+            "created_at": datetime,
+            "chat_type": "private" | "group",
+            "sender": {"id": int, "username": str, "avatar": str},
+            "chat_info": {
+                # 私聊时：对方用户信息
+                "peer_user_id": int,
+                "peer_username": str,
+                "peer_avatar": str,
+                # 群聊时：群组信息
+                "group_id": int,
+                "group_name": str,
+                "group_avatar": str
+            }
+        }
+    ]
+    """
+    from app.models.group_messages import GroupMessage
+    from app.models.groups import Group
+    from app.models.group_members import GroupMember
+    from app.models.user import User
+    
+    results = []
+    
+    # 1. 搜索私聊消息
+    private_messages = db.query(Messages, User).join(
+        User, Messages.sender_id == User.id
+    ).filter(
+        or_(
+            Messages.sender_id == current_user_id,
+            Messages.receiver_id == current_user_id
+        ),
+        Messages.content.like(f"%{keyword}%"),
+        Messages.msg_type != 4  # 排除已撤回的消息
+    ).order_by(desc(Messages.created_at)).limit(limit).all()
+    
+    for msg, sender in private_messages:
+        # 确定对方是谁
+        peer_user_id = msg.receiver_id if msg.sender_id == current_user_id else msg.sender_id
+        peer_user = db.query(User).filter(User.id == peer_user_id).first()
+        
+        results.append({
+            "message_id": msg.id,
+            "content": msg.content,
+            "msg_type": msg.msg_type,
+            "created_at": msg.created_at,
+            "chat_type": "private",
+            "sender": {
+                "id": sender.id,
+                "username": sender.username,
+                "avatar": sender.avatar
+            },
+            "chat_info": {
+                "peer_user_id": peer_user.id if peer_user else None,
+                "peer_username": peer_user.username if peer_user else "未知用户",
+                "peer_avatar": peer_user.avatar if peer_user else None
+            }
+        })
+    
+    # 2. 搜索群聊消息（仅搜索用户加入的群）
+    group_messages = db.query(GroupMessage, User, Group).join(
+        User, GroupMessage.sender_id == User.id
+    ).join(
+        Group, GroupMessage.group_id == Group.id
+    ).join(
+        GroupMember, and_(
+            GroupMember.group_id == GroupMessage.group_id,
+            GroupMember.user_id == current_user_id
+        )
+    ).filter(
+        GroupMessage.content.like(f"%{keyword}%"),
+        GroupMessage.msg_type != 4  # 排除已撤回的消息
+    ).order_by(desc(GroupMessage.created_at)).limit(limit).all()
+    
+    for msg, sender, group in group_messages:
+        results.append({
+            "message_id": msg.id,
+            "content": msg.content,
+            "msg_type": msg.msg_type,
+            "created_at": msg.created_at,
+            "chat_type": "group",
+            "sender": {
+                "id": sender.id,
+                "username": sender.username,
+                "avatar": sender.avatar
+            },
+            "chat_info": {
+                "group_id": group.id,
+                "group_name": group.name,
+                "group_avatar": group.avatar
+            }
+        })
+    
+    # 3. 按时间倒序排序并限制数量
+    results.sort(key=lambda x: x["created_at"], reverse=True)
+    return results[:limit]

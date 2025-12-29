@@ -170,3 +170,34 @@ def delete_message(
         raise HTTPException(404, detail="消息不存在或无权限撤回")
     
     return {"msg": "消息已撤回", "message_id": message_id}
+
+
+@router.get("/search")
+def search_messages(
+    keyword: str = Query(..., min_length=1, description="搜索关键词"),
+    limit: int = Query(50, ge=1, le=100, description="返回结果数量限制，默认50"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    搜索聊天记录
+    
+    Query:
+        - keyword: 搜索关键词（消息内容）
+        - limit: 返回结果数量（默认50，最大100）
+    
+    Returns:
+        匹配的消息列表，包含私聊和群聊消息，按时间倒序
+        每条消息包含：
+        - 消息内容和类型
+        - 发送者信息
+        - 会话信息（私聊对方/群组信息）
+        - 时间戳
+    
+    说明：
+        仅搜索与当前用户相关的消息（私聊双方包含自己，或群聊中自己是成员）
+    """
+    try:
+        return message_service.search_messages(db, current_user.id, keyword, limit)
+    except Exception as e:
+        raise HTTPException(500, detail=f"搜索消息失败: {str(e)}")

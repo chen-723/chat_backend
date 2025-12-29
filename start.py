@@ -24,6 +24,7 @@ Windows 友好的 uvicorn 启动脚本
 解决 WinError 10055 问题
 目前后端的启动命令
 python start.py
+这个没有用https
 """
 # import uvicorn
 

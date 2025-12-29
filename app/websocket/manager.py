@@ -114,13 +114,28 @@ class ConnectionManager:
                 await self.send_personal_message(contact_id, message)
     
     async def broadcast_user_status(self, user_id: int, status: str, db):
-        """广播用户在线状态给其联系人
+        """广播用户在线状态给其联系人，并更新数据库
         
         Args:
             user_id: 用户ID
             status: 'online' 或 'offline'
             db: 数据库会话
         """
+        from app.models.user import User
+        from datetime import datetime, timedelta
+        
+        # 更新数据库中的用户状态
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            user.status = status
+            if status == "offline":
+                user.last_seen = datetime.utcnow() + timedelta(hours=8)
+            else:
+                user.last_seen = None
+            db.commit()
+            logger.info(f"用户 {user_id} 状态已更新为 {status}")
+        
+        # 广播状态变化给联系人
         message = {
             "type": f"user_{status}",
             "data": {"user_id": user_id}

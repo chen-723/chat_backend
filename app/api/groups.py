@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import Optional
 from app.db.database import get_db
@@ -8,8 +8,12 @@ from app.schemas.groups import GroupCreate, GroupUpdate, GroupResponse
 from app.schemas.group_members import GroupMemberRoleUpdate, GroupMemberResponse
 from app.schemas.group_messages import GroupMessageCreate, GroupMessageResponse, GroupMessagePage
 from app.services import group_service
+import shutil, uuid, os
 
 router = APIRouter()
+
+AVATAR_DIR = "static/avatars"
+os.makedirs(AVATAR_DIR, exist_ok=True)
 
 
 # ==================== 群组管理接口 ====================
@@ -53,6 +57,27 @@ def get_my_groups(
         return group_service.get_user_groups(db, current_user.id)
     except Exception as e:
         raise HTTPException(500, detail=f"获取群组列表失败: {str(e)}")
+
+
+@router.get("/search", response_model=list[GroupResponse])
+def search_groups(
+    keyword: str = Query(..., min_length=1, description="搜索关键词"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    搜索我加入的群组
+    
+    Query:
+        - keyword: 搜索关键词（群名称）
+    
+    Returns:
+        匹配的群组列表，仅返回当前用户已加入的群组
+    """
+    try:
+        return group_service.search_user_groups(db, current_user.id, keyword)
+    except Exception as e:
+        raise HTTPException(500, detail=f"搜索群组失败: {str(e)}")
 
 
 @router.get("/{group_id}", response_model=GroupResponse)
@@ -114,6 +139,48 @@ def delete_group(
     """
     group_service.delete_group(db, group_id, current_user.id)
     return {"msg": "群组已解散", "group_id": group_id}
+
+
+@router.post("/{group_id}/avatar")
+def upload_group_avatar(
+    group_id: int,
+    avatar: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    上传群头像
+    
+    Path:
+        - group_id: 群组ID
+    
+    说明：
+        仅群主和管理员可操作，头像保存到 avatars 目录（不会被定期清理）
+    """
+    if avatar.content_type not in ["image/jpeg", "image/png"]:
+        raise HTTPException(400, "只能上传 JPG 或 PNG 格式的图片")
+    
+    ext = avatar.filename.split(".")[-1]
+    file_name = f"{uuid.uuid4().hex}.{ext}"
+    file_path = os.path.join(AVATAR_DIR, file_name)
+
+    with open(file_path, "wb") as f:
+        shutil.copyfileobj(avatar.file, f)
+
+    avatar_url = f"/static/avatars/{file_name}"
+    
+    # 更新群头像
+    from app.schemas.groups import GroupUpdate
+    group = group_service.update_group(
+        db, 
+        group_id, 
+        current_user.id, 
+        GroupUpdate(avatar=avatar_url)
+    )
+    
+    return {"url": avatar_url, "group": group}
+
+
 
 
 # ==================== 群成员管理接口 ====================

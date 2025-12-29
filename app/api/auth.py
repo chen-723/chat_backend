@@ -40,3 +40,26 @@ def logout(
 ):
     logout_user(db, current_user.id)
     return {"msg": "登出成功"}
+
+# 5. 设置在线状态
+@router.put("/me/status")
+def update_status(
+    status: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """手动设置用户在线状态"""
+    from datetime import datetime, timedelta
+    
+    new_status = status.get("status")
+    if new_status not in ["online", "offline"]:
+        raise HTTPException(400, detail="状态必须是 online 或 offline")
+    
+    current_user.status = new_status
+    if new_status == "offline":
+        current_user.last_seen = datetime.utcnow() + timedelta(hours=8)
+    else:
+        current_user.last_seen = None
+    
+    db.commit()
+    return {"msg": f"状态已更新为 {new_status}"}
