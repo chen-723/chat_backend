@@ -1,8 +1,7 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from app.websocket.manager import manager
 from app.core.security import verify_token
-from app.db.database import get_db
+from app.db.database import SessionLocal
 from jose import JWTError
 import json
 import logging
@@ -14,8 +13,7 @@ router = APIRouter()
 @router.websocket("/ws")
 async def websocket_endpoint(
     websocket: WebSocket,
-    token: str = Query(...),
-    db: Session = Depends(get_db)
+    token: str = Query(...)
 ):
     """
     WebSocket连接端点
@@ -24,6 +22,7 @@ async def websocket_endpoint(
         - token: JWT认证令牌
     """
     user_id = None
+    db = None
     
     try:
         # 验证token
@@ -33,6 +32,9 @@ async def websocket_endpoint(
         if not user_id:
             await websocket.close(code=1008, reason="Invalid token")
             return
+        
+        # 为WebSocket创建独立的数据库会话
+        db = SessionLocal()
         
         # 建立连接
         await manager.connect(user_id, websocket)
@@ -225,6 +227,18 @@ async def websocket_endpoint(
                 })
             
             # 广播用户下线状态给其联系人
-            await manager.broadcast_user_status(user_id, "offline", db)
+            if db:
+                try:
+                    await manager.broadcast_user_status(user_id, "offline", db)
+                except Exception as e:
+                    logger.error(f"广播下线状态失败: {e}")
+            
             manager.disconnect(user_id)
             logger.info(f"清理用户 {user_id} 的连接资源")
+        
+        # 关闭数据库会话
+        if db:
+            try:
+                db.close()
+            except Exception as e:
+                logger.error(f"关闭数据库会话失败: {e}")

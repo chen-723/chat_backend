@@ -23,5 +23,14 @@ RUN mkdir -p /app/static/avatars /app/static/uploads
 # 容器内监听 8000
 EXPOSE 8000
 
-# 启动命令
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# 启动命令 - 使用单worker避免并发DDL冲突
+# 如需多worker，请在docker-compose中设置SKIP_DB_INIT=1并单独运行初始化
+CMD ["uvicorn", "main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--workers", "1", \
+     "--loop", "asyncio", \
+     "--timeout-keep-alive", "75", \
+     "--limit-concurrency", "200", \
+     "--limit-max-requests", "5000", \
+     "--backlog", "2048"]

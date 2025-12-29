@@ -10,10 +10,12 @@ if __name__ == "__main__":
         reload=True,
         workers=1,
         loop="asyncio",
-        timeout_keep_alive=30,
-        limit_concurrency=100,
-        limit_max_requests=1000,
+        timeout_keep_alive=75,  # 增加到75秒，避免WebSocket频繁断开
+        limit_concurrency=200,  # 增加并发限制
+        limit_max_requests=5000,  # 增加最大请求数
+        backlog=2048,  # 增加连接队列
         # ↓↓↓ 新增：本地 https，证书用 mkcert 生成的
+        #如果不用本地开发就注释掉下面两行
         ssl_keyfile="localhost.key",   # 私钥
         ssl_certfile="localhost.crt",  # 证书
     )
